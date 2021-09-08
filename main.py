@@ -51,8 +51,8 @@ class MyWindow(QtWidgets.QMainWindow):
 
     @pyqtSlot()
     def changeComPort2(self):
-        global comport1
-        comport1 = self.ui.listWidget_2.currentItem().text()
+        global comport2
+        comport2 = self.ui.listWidget_2.currentItem().text()
         self.ui.label_8.setText(comport2)
         self.pump2 = longer.Longer(comport2)
 
@@ -111,7 +111,7 @@ class MyWindow(QtWidgets.QMainWindow):
     def set_speed2(self):
         tmp = self.ui.spinBox_2.value()
         if self.pump2 is not None:
-            self.pump2.setSettings(int(tmp/2))
+            self.pump2.setSettings(tmp)
             self.pump2.printToCom(self.pump2.getWriteMsg())
 
     @pyqtSlot()

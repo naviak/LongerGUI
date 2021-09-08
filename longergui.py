@@ -122,5 +122,5 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "STOP"))
         self.label_5.setText(_translate("MainWindow", "Pump2"))
         self.checkBox_2.setText(_translate("MainWindow", "ConterClockWise"))
-        self.label_8.setText(_translate("MainWindow", "TextLabel"))
+        self.label_8.setText(_translate("MainWindow", "COM PORT"))
         self.pushButton_6.setText(_translate("MainWindow", "REFRESH"))
