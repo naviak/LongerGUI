@@ -12,8 +12,8 @@ class CameraWindow:
     frame = None
 
     def __init__(self):
+        self.cam = cv2.VideoCapture(0)
         cv2.namedWindow("test")
-        self.cam = cv2.VideoCapture(0, cv2.CAP_MSMF)
 
     def __del__(self):
         self.cam.release()
@@ -21,7 +21,8 @@ class CameraWindow:
 
     def setCamera(self, index=0):
         self.camera_port = index
-        self.cam = cv2.VideoCapture(self.camera_port, cv2.CAP_MSMF)
+        self.cam.release()
+        self.cam = cv2.VideoCapture(self.camera_port)
 
     def saveFrame(self):
         img_name = "opencv_frame_{}.png".format(self.img_counter)
