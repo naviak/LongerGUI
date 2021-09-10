@@ -1,4 +1,9 @@
 import cv2
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui, QtCore
+import queue
+import threading
+from cameragui import *
 
 
 class CameraException(Exception):
@@ -6,18 +11,47 @@ class CameraException(Exception):
         super().__init__(message)
 
 
-class CameraWindow:
+class OwnImageWidget(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(OwnImageWidget, self).__init__(parent)
+        self.image = None
+
+    def setImage(self, image):
+        self.image = image
+        sz = image.size()
+        self.setMinimumSize(sz)
+        self.update()
+
+    def paintEvent(self, event):
+        qp = QtGui.QPainter()
+        qp.begin(self)
+        if self.image:
+            qp.drawImage(QtCore.QPoint(0, 0), self.image)
+        qp.end()
+
+
+class CameraWindow(QtWidgets.QMainWindow):
+
     camera_port = None
     img_counter = 0
     frame = None
+    running = False
+    q = queue.Queue()
 
-    def __init__(self):
-        self.cam = cv2.VideoCapture(0)
-        cv2.namedWindow("test")
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
 
-    def __del__(self):
-        self.cam.release()
-        cv2.destroyAllWindows()
+        self.ui.startButton.clicked.connect(self.start_clicked)
+
+        self.window_width = self.ui.ImgWidget.frameSize().width()
+        self.window_height = self.ui.ImgWidget.frameSize().height()
+        self.ui.ImgWidget = OwnImageWidget(self.ui.ImgWidget)
+        self.capture_thread = threading.Thread(target=self.grab, args=(0, self.q, 640, 480, 30))
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.update_frame)
+        self.timer.start(1)
 
     def setCamera(self, index=0):
         self.camera_port = index
@@ -30,16 +64,49 @@ class CameraWindow:
         print("{} written!".format(img_name))
         self.img_counter += 1
 
-    def loop(self):
-        ret, self.frame = self.cam.read()
-        if not ret:
-            raise CameraException("failed to grab frame")
-        cv2.imshow("test", self.frame)
-        k = cv2.waitKey(1)
-        if k % 256 == 27:
-            # ESC pressed
-            print("Escape hit, closing camera")
-            return 0
-        elif k % 256 == 32:
-            # SPACE pressed
-            self.saveFrame()
+    def grab(self, cam, queu, width, height, fps):
+        capture = cv2.VideoCapture(cam)
+        capture.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        capture.set(cv2.CAP_PROP_FPS, fps)
+        while self.running:
+            frame = {}
+            capture.grab()
+            retval, img = capture.retrieve(0)
+            frame["img"] = img
+
+            if queu.qsize() < 10:
+                queu.put(frame)
+            else:
+                print(queu.qsize())
+
+    def update_frame(self):
+        if not self.q.empty():
+            self.ui.startButton.setText('Camera is live')
+            frame = self.q.get()
+            img = frame["img"]
+
+            img_height, img_width, img_colors = img.shape
+            scale_w = float(self.window_width) / float(img_width)
+            scale_h = float(self.window_height) / float(img_height)
+            scale = min([scale_w, scale_h])
+
+            if scale == 0:
+                scale = 1
+
+            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            height, width, bpc = img.shape
+            bpl = bpc * width
+            image = QtGui.QImage(img.data, width, height, bpl, QtGui.QImage.Format_RGB888)
+
+            self.ui.ImgWidget.setImage(image)
+
+    def closeEvent(self, event):
+        self.running = False
+
+    def start_clicked(self):
+        self.running = True
+        self.capture_thread.start()
+        self.ui.startButton.setEnabled(False)
+        self.ui.startButton.setText('Starting...')
