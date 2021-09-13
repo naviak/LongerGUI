@@ -34,9 +34,9 @@ class CameraWindow(QtWidgets.QMainWindow):
 
     camera_port = None
     img_counter = 0
-    frame = None
     running = False
     q = queue.Queue()
+    frame = None
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -48,27 +48,29 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.window_width = self.ui.ImgWidget.frameSize().width()
         self.window_height = self.ui.ImgWidget.frameSize().height()
         self.ui.ImgWidget = OwnImageWidget(self.ui.ImgWidget)
-        self.capture_thread = threading.Thread(target=self.grab, args=(0, self.q, 640, 480, 30))
+        self.capture_thread = threading.Thread(target=self.grab, args=(0, self.q, 640, 480))
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update_frame)
+        self.ui.screenshotButton.clicked.connect(self.saveFrame)
         self.timer.start(1)
 
     def setCamera(self, index=0):
         self.camera_port = index
         self.cam.release()
-        self.cam = cv2.VideoCapture(self.camera_port)
+        #self.cam = cv2.VideoCapture(self.camera_port)
 
     def saveFrame(self):
-        img_name = "opencv_frame_{}.png".format(self.img_counter)
-        cv2.imwrite(img_name, self.frame)
-        print("{} written!".format(img_name))
-        self.img_counter += 1
+        if self.frame is not None:
+            img_name = "opencv_frame_{}.png".format(self.img_counter)
+            cv2.imwrite(img_name, self.frame)
+            print("{} written!".format(img_name))
+            self.img_counter += 1
 
-    def grab(self, cam, queu, width, height, fps):
+    def grab(self, cam, queu, width, height):
         capture = cv2.VideoCapture(cam)
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         capture.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        capture.set(cv2.CAP_PROP_FPS, fps)
+
         while self.running:
             frame = {}
             capture.grab()
@@ -85,12 +87,12 @@ class CameraWindow(QtWidgets.QMainWindow):
             self.ui.startButton.setText('Camera is live')
             frame = self.q.get()
             img = frame["img"]
+            self.frame = img
 
             img_height, img_width, img_colors = img.shape
             scale_w = float(self.window_width) / float(img_width)
             scale_h = float(self.window_height) / float(img_height)
             scale = min([scale_w, scale_h])
-
             if scale == 0:
                 scale = 1
 
