@@ -66,7 +66,7 @@ class LongerWindow(QtWidgets.QMainWindow):
     def stop1(self):
         if self.running1 and self.comport1 is not None:
             try:
-                running1 = False
+                self.running1 = False
                 self.pump1.setSettings(state=False)
                 self.pump1.printToCom(self.pump1.getWriteMsg())
             except serial.SerialException:
@@ -86,7 +86,7 @@ class LongerWindow(QtWidgets.QMainWindow):
     def stop2(self):
         if self.running2 and self.comport2 is not None:
             try:
-                running2 = False
+                self.running2 = False
                 self.pump2.setSettings(state=False)
                 self.pump2.printToCom(self.pump2.getWriteMsg())
             except serial.SerialException:

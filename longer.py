@@ -19,7 +19,7 @@ class Longer:
 
     def setSettings(self, speed=None, rotation: bool = None, state: bool = None):
         if speed is not None:
-            tmp = speed * 10
+            tmp = int(speed * 10)
             self.fbspeed = (tmp >> 8) & 0xff
             self.sbspeed = tmp & 0xff
         if state is not None:
